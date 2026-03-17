@@ -1,15 +1,15 @@
 # Artefactos del modelo
 
-Coloca aquí los archivos generados después de entrenar el modelo en el proyecto principal:
+En este repo ya están **scaler.pkl** y **feature_cols.pkl**.
 
-- **model.keras** – modelo Keras guardado
-- **scaler.pkl** – StandardScaler (joblib)
-- **feature_cols.pkl** – lista de nombres de columnas (opcional para la app)
+Falta **model.keras**. Opciones:
 
-Desde el proyecto principal (donde está `Proyecto.ipynb`), después de entrenar:
+1. **Modelo real (recomendado)**  
+   En el proyecto principal (donde está `Proyecto.ipynb`), ejecuta todas las celdas hasta el entrenamiento y la celda de exportación. Luego copia aquí `app_artifacts/model.keras` desde ese proyecto.
 
-```python
-%run export_artifacts.py
-```
-
-Luego copia el contenido de `app_artifacts/` de ese proyecto a esta carpeta (o configura `export_artifacts.py` para que guarde directamente en `servicio-nube/app_artifacts/`).
+2. **Modelo de ejemplo (misma arquitectura, para probar la app)**  
+   Donde tengas TensorFlow instalado, en la raíz de este repo:
+   ```bash
+   python generate_model_keras.py
+   ```
+   Eso crea `app_artifacts/model.keras` y la app ya puede servir predicciones.
