@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Predicción de riesgo – Remociones en masa CDMX</title>
+  <style>
+    :root { --bg: #0f1419; --card: #1a2332; --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --danger: #f85149; --ok: #3fb950; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 1.5rem; line-height: 1.5; }
+    .container { max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 1.35rem; margin-bottom: 0.5rem; }
+    .sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 1.5rem; }
+    .card { background: var(--card); border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+    .card h2 { font-size: 1rem; color: var(--accent); margin: 0 0 1rem 0; }
+    label { display: block; margin-bottom: 0.35rem; font-size: 0.9rem; }
+    input[type="number"], input[type="text"] { width: 100%; padding: 0.5rem 0.6rem; border: 1px solid #30363d; border-radius: 6px; background: var(--bg); color: var(--text); font-size: 0.95rem; }
+    input:focus { outline: none; border-color: var(--accent); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .full { grid-column: 1 / -1; }
+    .hint { font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem; }
+    button { background: var(--accent); color: #fff; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; font-size: 1rem; cursor: pointer; margin-top: 0.5rem; }
+    button:hover { opacity: 0.9; }
+    .error { background: rgba(248,81,73,0.15); color: var(--danger); padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; }
+    .result { background: rgba(63,185,80,0.12); color: var(--ok); padding: 1rem; border-radius: 8px; margin-top: 1rem; }
+    .result strong { display: block; margin-bottom: 0.25rem; }
+    .level-alto { color: #f85149; }
+    .level-medio { color: #d29922; }
+    .level-bajo { color: #3fb950; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Predicción de riesgo de remociones en masa</h1>
+    <p class="sub">CDMX – Ingresa las 16 variables del modelo</p>
+
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    {% if prediction %}
+    <div class="result">
+      <strong>Resultado</strong>
+      Probabilidad de riesgo: <strong>{{ "%.1f"|format(probability * 100) }}%</strong><br>
+      Nivel: <span class="level-{{ level|lower }}">{{ level }}</span>
+    </div>
+    {% endif %}
+
+    <form action="{{ url_for('predict') }}" method="post">
+      <div class="card">
+        <h2>Características estáticas</h2>
+        <div class="row">
+          <div>
+            <label for="dist_falla_m">Distancia a falla (m)</label>
+            <input type="number" id="dist_falla_m" name="dist_falla_m" step="any" required placeholder="ej. 500">
+          </div>
+          <div>
+            <label for="dist_fractura_m">Distancia a fractura (m)</label>
+            <input type="number" id="dist_fractura_m" name="dist_fractura_m" step="any" required placeholder="ej. 300">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="en_hundimiento">En zona de hundimiento (0/1)</label>
+            <input type="number" id="en_hundimiento" name="en_hundimiento" min="0" max="1" value="0" required>
+            <span class="hint">0 = No, 1 = Sí</span>
+          </div>
+          <div>
+            <label for="en_agrietamiento">En zona de agrietamiento (0/1)</label>
+            <input type="number" id="en_agrietamiento" name="en_agrietamiento" min="0" max="1" value="0" required>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="tiene_litologia">Tiene litología (0/1)</label>
+            <input type="number" id="tiene_litologia" name="tiene_litologia" min="0" max="1" value="0" required>
+          </div>
+          <div>
+            <label for="tiene_suelo">Tiene suelo (0/1)</label>
+            <input type="number" id="tiene_suelo" name="tiene_suelo" min="0" max="1" value="0" required>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="en_topoforma">En topoforma (0/1)</label>
+            <input type="number" id="en_topoforma" name="en_topoforma" min="0" max="1" value="0" required>
+          </div>
+          <div>
+            <label for="tiene_inestabilidad">Tiene inestabilidad (0/1)</label>
+            <input type="number" id="tiene_inestabilidad" name="tiene_inestabilidad" min="0" max="1" value="0" required>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="lon">Longitud</label>
+            <input type="number" id="lon" name="lon" step="any" required placeholder="-99.15">
+          </div>
+          <div>
+            <label for="lat">Latitud</label>
+            <input type="number" id="lat" name="lat" step="any" required placeholder="19.43">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Características temporales (precipitación)</h2>
+        <div class="row">
+          <div>
+            <label for="precip_1d">Precipitación 1 día (mm)</label>
+            <input type="number" id="precip_1d" name="precip_1d" step="any" min="0" required placeholder="0">
+          </div>
+          <div>
+            <label for="precip_7d">Precipitación 7 días (mm)</label>
+            <input type="number" id="precip_7d" name="precip_7d" step="any" min="0" required placeholder="0">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="precip_15d">Precipitación 15 días (mm)</label>
+            <input type="number" id="precip_15d" name="precip_15d" step="any" min="0" required placeholder="0">
+          </div>
+          <div>
+            <label for="precip_30d">Precipitación 30 días (mm)</label>
+            <input type="number" id="precip_30d" name="precip_30d" step="any" min="0" required placeholder="0">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="max_intensity_7d">Intensidad máx. 7 días (mm)</label>
+            <input type="number" id="max_intensity_7d" name="max_intensity_7d" step="any" min="0" required placeholder="0">
+          </div>
+          <div>
+            <label for="consecutive_rainy_days">Días consecutivos con lluvia</label>
+            <input type="number" id="consecutive_rainy_days" name="consecutive_rainy_days" min="0" step="1" required placeholder="0">
+          </div>
+        </div>
+      </div>
+
+      <button type="submit">Predecir riesgo</button>
+    </form>
+  </div>
+</body>
+</html>
